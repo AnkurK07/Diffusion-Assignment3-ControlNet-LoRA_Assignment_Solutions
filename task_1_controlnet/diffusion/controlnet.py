@@ -56,10 +56,10 @@ def zero_convolution(
     (Initialized weight & bias as zeros.)
     """
     ######## TODO (1) ########
-    # DO NOT change the code outside this part.
-    # Return a zero-convolution layer,
-    # with the weight & bias initialized as zeros.
-    module = None
+    module = nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0)
+    nn.init.zeros_(module.weight)
+    nn.init.zeros_(module.bias)
+
     ######## TODO (1) ########
 
     return module
@@ -459,6 +459,26 @@ class ControlNetModel(ModelMixin, ConfigMixin, FromOriginalModelMixin):
         # DO NOT change the code outside this part.
         # Initialize 'controlnet' using the pretrained 'unet' model
         # NOTE: Modules to initialize: 'conv_in', 'time_proj', 'time_embedding', 'down_blocks', 'mid_block'
+        controlnet.conv_in.load_state_dict(unet.conv_in.state_dict())
+
+        controlnet.time_proj.load_state_dict(unet.time_proj.state_dict())
+
+        controlnet.time_embedding.load_state_dict(unet.time_embedding.state_dict())
+
+        for i, down_block in enumerate(unet.down_blocks):
+            controlnet.down_blocks[i].load_state_dict(down_block.state_dict())
+
+        controlnet.mid_block.load_state_dict(unet.mid_block.state_dict())
+
+        if hasattr(unet, 'encoder_hid_proj') and unet.encoder_hid_proj is not None:
+            controlnet.encoder_hid_proj.load_state_dict(unet.encoder_hid_proj.state_dict())
+
+        if hasattr(unet, 'class_embedding') and unet.class_embedding is not None:
+            controlnet.class_embedding.load_state_dict(unet.class_embedding.state_dict())
+
+
+
+
 
         ######## TODO (2) ########
 
@@ -747,6 +767,17 @@ class ControlNetModel(ModelMixin, ConfigMixin, FromOriginalModelMixin):
 
         down_block_res_samples = None
         mid_block_res_sample = None
+        # Apply zero-convolution to down block residual samples
+        controlnet_down_block_res_samples = []
+        for i, res_sample in enumerate(down_block_res_samples):
+            controlnet_block = self.controlnet_down_blocks[i]
+            controlnet_down_block_res_samples.append(controlnet_block(res_sample))
+
+        # Apply zero-convolution to mid block residual sample
+        mid_block_res_sample = self.controlnet_mid_block(sample)
+
+        # Update the variables
+        down_block_res_samples = controlnet_down_block_res_samples
 
         ######## TODO (3) ########
 
