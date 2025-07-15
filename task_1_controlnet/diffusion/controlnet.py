@@ -626,7 +626,7 @@ class ControlNetModel(ModelMixin, ConfigMixin, FromOriginalModelMixin):
         for module in self.children():
             fn_recursive_set_attention_slice(module, reversed_slice_size)
 
-    def _set_gradient_checkpointing(self, module, value: bool = False) -> None:
+    def _set_gradient_checkpointing(self, enable: bool = False, gradient_checkpointing_func=None) -> None:
         if isinstance(module, (CrossAttnDownBlock2D, DownBlock2D)):
             module.gradient_checkpointing = value
 
